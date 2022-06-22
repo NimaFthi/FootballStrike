@@ -1,4 +1,5 @@
-﻿using _Scripts.Utils;
+﻿using System;
+using _Scripts.Utils;
 using Models;
 using UnityEngine;
 
@@ -9,6 +10,7 @@ namespace Shady.Controllers
         private bool _isPlayerOne;
         private int _turnNumber;
         public int TurnNumber => _turnNumber;
+        public Action<bool> onMatchReceived;
 
         private Match _match;
 
@@ -25,6 +27,7 @@ namespace Shady.Controllers
                 {
                     _isPlayerOne = true;
                 }
+                onMatchReceived?.Invoke(_isPlayerOne);
             }
         }
 

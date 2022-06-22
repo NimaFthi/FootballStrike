@@ -36,7 +36,7 @@ public class InputManager : MonoBehaviour
 
     public AnimationCurve defaultCurve;
     //other
-    private bool canSwipe = true;
+    private bool canSwipe;
     private Coroutine currenCoroutine;
 
 
@@ -44,6 +44,7 @@ public class InputManager : MonoBehaviour
     {
         _firstRigidbodyPosition = rb.transform.position;
         SocketManager.Instance.onGameAction = OnShoot;
+        MatchManager.Instance.onMatchReceived = (isPlayerOne) => { canSwipe = isPlayerOne; };
     }
 
     public async void ChangeTurn()
