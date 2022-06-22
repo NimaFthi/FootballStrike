@@ -70,7 +70,7 @@ public class InputManager : MonoBehaviour
     private void OnShoot(GameLog log)
     {
         ShootData shootData = JsonConvert.DeserializeObject<ShootData>(log.parameters["data"].ToString());
-        if (shootData.deviceId != SystemInfo.deviceUniqueIdentifier)
+        if (shootData.userId != User.Instance.id)
         {
             animationCurve = Vector2ToAnimationCurve(shootData.animationCurve);
             Shoot(shootData.forceDirection);
@@ -122,7 +122,7 @@ public class InputManager : MonoBehaviour
     private void Shoot(Vector3 shootDir)
     {
 
-        ShootData shootData = new ShootData(SystemInfo.deviceUniqueIdentifier,shootDir, AnimationCurveToVector2);
+        ShootData shootData = new ShootData(User.Instance.id,shootDir, AnimationCurveToVector2);
         var data = new Dictionary<string, object>
         {
             ["data"] = shootData
