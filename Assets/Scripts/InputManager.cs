@@ -1,7 +1,11 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using HedgehogTeam.EasyTouch;
+using Models;
+using Newtonsoft.Json;
+using Shady.Controllers;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -16,6 +20,7 @@ public class InputManager : MonoBehaviour
     [SerializeField] private Transform goalPos;
     [SerializeField] private GameObject hitTxt;
 
+    private Vector3 _firstRigidbodyPosition;
     //stats
     [SerializeField] private float shootPowerX = 1f;
     [SerializeField] private float shootPowerY = 2f;
@@ -29,9 +34,47 @@ public class InputManager : MonoBehaviour
     public List<Vector2> swipeCurvePoints = new List<Vector2>();
     public AnimationCurve animationCurve;
 
+    public AnimationCurve defaultCurve;
     //other
     private bool canSwipe = true;
     private Coroutine currenCoroutine;
+
+
+    private void Start()
+    {
+        _firstRigidbodyPosition = rb.transform.position;
+        SocketManager.Instance.onGameAction = OnShoot;
+    }
+
+    public async void ChangeTurn()
+    {
+        await Task.Delay(10000);
+        bool isMyTurn = MatchManager.Instance.ChangeTurn;
+        if (isMyTurn)
+        {
+            swipeCurvePoints.Clear();
+            canSwipe = true;
+            animationCurve = defaultCurve;
+        }
+        else
+        {
+            canSwipe = false;
+        }
+        
+        ballGfx.transform.position = Vector3.zero;
+        ballCollider.center = Vector3.zero;
+        rb.transform.position = _firstRigidbodyPosition;
+    }
+
+    private void OnShoot(GameLog log)
+    {
+        ShootData shootData = JsonConvert.DeserializeObject<ShootData>(log.parameters["data"].ToString());
+        if (shootData.deviceId != SystemInfo.deviceUniqueIdentifier)
+        {
+            animationCurve = Vector2ToAnimationCurve(shootData.animationCurve);
+            Shoot(shootData.forceDirection);
+        }
+    }
 
     private void OnDrawGizmos()
     {
@@ -73,12 +116,48 @@ public class InputManager : MonoBehaviour
             canSwipe = false;
         }
     }
+    
 
     private void Shoot(Vector3 shootDir)
     {
+
+        ShootData shootData = new ShootData(SystemInfo.deviceUniqueIdentifier,shootDir, AnimationCurveToVector2);
+        var data = new Dictionary<string, object>
+        {
+            ["data"] = shootData
+        };
+        GameLog log = new GameLog(1, "shoot", data);
+        SocketManager.Instance.SendAction(log);
+        
         var shootForce = new Vector3(shootDir.x * shootPowerX, shootDir.y * shootPowerY, shootDir.z * shootPowerZ);
         rb.AddForceAtPosition(shootForce, shootPos.position, ForceMode.Impulse);
         currenCoroutine = StartCoroutine(CurveTheBall());
+        ChangeTurn();
+    }
+
+    private List<Vector2> AnimationCurveToVector2
+    {
+        get
+        {
+            List<Vector2> data = new List<Vector2>();
+            foreach (var curve in animationCurve.keys)
+            {
+                data.Add(new Vector2(curve.time, curve.value));
+            }
+
+            return data;
+        }
+    }
+
+    private AnimationCurve Vector2ToAnimationCurve(List<Vector2> data)
+    {
+        AnimationCurve curve = new AnimationCurve();
+        foreach (var datum in data)
+        {
+            curve.AddKey(datum.x, datum.y);
+        }
+
+        return curve;
     }
 
     private void CalculateCurve()

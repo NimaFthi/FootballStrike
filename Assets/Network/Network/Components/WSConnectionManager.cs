@@ -211,6 +211,7 @@ public class WSConnectionManager : MonoBehaviour
 
     public void Connect(string userToken,System.Action onOpen, System.Action<ushort, string> onClose)
     {
+        MyLog("START Connect");
         this._userToken = userToken;
         this.connect_onOpen = onOpen;
         this.connect_onClose = onClose;

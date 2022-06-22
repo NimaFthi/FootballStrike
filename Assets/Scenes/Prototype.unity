@@ -616,6 +616,7 @@ GameObject:
   m_Component:
   - component: {fileID: 673705623}
   - component: {fileID: 673705624}
+  - component: {fileID: 673705625}
   m_Layer: 0
   m_Name: ServerManager
   m_TagString: Untagged
@@ -646,13 +647,25 @@ MonoBehaviour:
   m_GameObject: {fileID: 673705622}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0677229aca9a1b041a0561686394f3bc, type: 3}
+  m_Script: {fileID: 11500000, guid: 8d259c9aadffa16449a13df88eaa5fde, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  apiToken: test
+  apiToken: ??
   url: ws://194.59.170.180:3101/ws
   origin: http://194.59.170.180:3101/
-  autoReconnect: 0
+  autoReconnect: 1
+--- !u!114 &673705625
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 673705622}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: be67b9ad25bb62740b878f2264218028, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &705507993
 GameObject:
   m_ObjectHideFlags: 0
