@@ -49,7 +49,9 @@ public class InputManager : MonoBehaviour
 
     public async void ChangeTurn()
     {
-        await Task.Delay(10000);
+        print("Change Turn");
+        await Task.Delay(5000);
+        print("After Change Turn");
         bool isMyTurn = MatchManager.Instance.ChangeTurn;
         if (isMyTurn)
         {
@@ -62,9 +64,10 @@ public class InputManager : MonoBehaviour
             canSwipe = false;
         }
         
-        ballGfx.transform.position = Vector3.zero;
+        ballGfx.transform.localPosition = Vector3.zero;
         ballCollider.center = Vector3.zero;
         rb.transform.position = _firstRigidbodyPosition;
+        hitTxt.gameObject.SetActive(false);
     }
 
     private void OnShoot(GameLog log)
@@ -127,7 +130,7 @@ public class InputManager : MonoBehaviour
         {
             ["data"] = shootData
         };
-        GameLog log = new GameLog(1, "shoot", data);
+        GameLog log = new GameLog(SocketManager.Instance.LogNumber, "shoot", data);
         SocketManager.Instance.SendAction(log);
         
         var shootForce = new Vector3(shootDir.x * shootPowerX, shootDir.y * shootPowerY, shootDir.z * shootPowerZ);

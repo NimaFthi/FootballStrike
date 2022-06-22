@@ -16,6 +16,9 @@ public class SocketManager : SingletonMonoBehaviour<SocketManager>
     private int _matchId;
     [SerializeField] private UnityEvent _onJoinMatch;
     public Action<GameLog> onGameAction;
+    private int _logNumber;
+    public int LogNumber => _logNumber;
+
     private void Start()
     {
         _connectionManager = GetComponent<WSConnectionManager>();
@@ -28,11 +31,12 @@ public class SocketManager : SingletonMonoBehaviour<SocketManager>
         RequestManager.Instance.Send(RequestMethod.GET, "http://194.59.170.180:3101/api/matches/view",
             (statusCode, responseBody) =>
             {
-                var response = JsonConvert.DeserializeObject<APIResponse>(responseBody);
 
+                var response = JsonConvert.DeserializeObject<APIResponse>(responseBody);
+                print($"Status Code: {response.code} Body: {response._data} MatchID: {_matchId}");
                 if (response._data.ToString() != "{}")
                 {
-                    var matches = JsonConvert.DeserializeObject<List<Match>>(response._data.ToString());
+                    var matches = JsonConvert.DeserializeObject<Dictionary<string,Match>>(response._data.ToString());
                     _matchId = GetEmptyMatchID(matches);
                 }
                 else
@@ -40,39 +44,55 @@ public class SocketManager : SingletonMonoBehaviour<SocketManager>
                     _matchId = 1;
                 }
 
-                print($"Status Code: {response.code} Body: {response._data} MatchID: {_matchId}");
             }, headers);
     }
 
+
     private void MessageHandler(WSResponse response)
     {
+        Match match;
         switch (response.method)
         {
             case SocketEvents.JoinMatch:
-                _onJoinMatch?.Invoke();
-                var match = response.GetData<Match>();
+                match = response.GetData<Dictionary<string, Match>>()["match"];
+                if (match.userIds.Count > 1)
+                {
+                    _onJoinMatch?.Invoke();
+                }
+
                 MatchManager.Instance.Match = match;
                 break;
-            case SocketEvents.SendAction:
-                onGameAction?.Invoke(response.GetData<GameLog>());
+            case SocketEvents.UpdateMatch:
+                match = response.GetData<Dictionary<string, Match>>()["match"];
+                if (match.logs.Count > 0)
+                {
+                    onGameAction?.Invoke(match.logs[_logNumber]);
+                    _logNumber++;
+                }
+                else
+                {
+                    if (match.userIds.Count > 1)
+                    {
+                        _onJoinMatch?.Invoke();
+                    }
+                }
                 break;
         }
     }
 
-    private int GetEmptyMatchID(List<Match> matches)
+    private int GetEmptyMatchID(Dictionary<string,Match> matches)
     {
         if (matches == null)
         {
             return 1;
         }
-
-        matches.OrderByDescending(t => t.id);
-        if (matches[0].userIds.Count < 2)
+        var lastMatchKey = matches.Keys.ToArray()[matches.Keys.Count - 1];
+        
+        if (matches[lastMatchKey].userIds.Count < 2)
         {
-            return matches[0].id;
+            return matches[lastMatchKey].id;
         }
-
-        return matches[0].id + 1;
+        return matches[lastMatchKey].id + 1;
     }
 
     public void ConnectToServer(string userToken)
