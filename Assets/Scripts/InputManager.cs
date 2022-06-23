@@ -33,8 +33,10 @@ public class InputManager : MonoBehaviour
     //curve shot
     public List<Vector2> swipeCurvePoints = new List<Vector2>();
     public AnimationCurve animationCurve;
-
-    public AnimationCurve defaultCurve;
+    
+    // public AnimationCurve defaultCurve;
+    //
+    // public AnimationCurve default2Curve;
     //other
     private bool canSwipe;
     private Coroutine currenCoroutine;
@@ -55,15 +57,18 @@ public class InputManager : MonoBehaviour
         bool isMyTurn = MatchManager.Instance.ChangeTurn;
         if (isMyTurn)
         {
-            swipeCurvePoints.Clear();
             canSwipe = true;
-            animationCurve = defaultCurve;
         }
         else
         {
             canSwipe = false;
         }
         
+        swipeCurvePoints.Clear();
+        var defaultCurve = new AnimationCurve();
+        defaultCurve.AddKey(0f, 0f);
+        defaultCurve.AddKey(1f, 0f);
+        animationCurve = defaultCurve;
         ballGfx.transform.localPosition = Vector3.zero;
         ballCollider.center = Vector3.zero;
         rb.transform.position = _firstRigidbodyPosition;
