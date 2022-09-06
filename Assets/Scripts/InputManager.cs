@@ -45,8 +45,8 @@ public class InputManager : MonoBehaviour
     private void Start()
     {
         _firstRigidbodyPosition = rb.transform.position;
-        SocketManager.Instance.onGameAction = OnShoot;
-        MatchManager.Instance.onMatchReceived = (isPlayerOne) => { canSwipe = isPlayerOne; };
+        //SocketManager.Instance.onGameAction = OnShoot;
+        //MatchManager.Instance.onMatchReceived = (isPlayerOne) => { canSwipe = isPlayerOne; };
     }
 
     public async void ChangeTurn()
@@ -54,15 +54,15 @@ public class InputManager : MonoBehaviour
         print("Change Turn");
         await Task.Delay(5000);
         print("After Change Turn");
-        bool isMyTurn = MatchManager.Instance.ChangeTurn;
-        if (isMyTurn)
-        {
-            canSwipe = true;
-        }
-        else
-        {
-            canSwipe = false;
-        }
+        //bool isMyTurn = MatchManager.Instance.ChangeTurn;
+        //if (isMyTurn)
+        //{
+        //    canSwipe = true;
+        //}
+        //else
+        //{
+        //    canSwipe = false;
+        //}
         
         swipeCurvePoints.Clear();
         var defaultCurve = new AnimationCurve();
@@ -104,7 +104,7 @@ public class InputManager : MonoBehaviour
     {
         gesture = EasyTouch.current;
 
-        if (!canSwipe) return;
+        //if (!canSwipe) return;
 
         CalculateCurve();
 
@@ -129,15 +129,16 @@ public class InputManager : MonoBehaviour
 
     private void Shoot(Vector3 shootDir)
     {
+        print("here");
 
         ShootData shootData = new ShootData(User.Instance.id,shootDir, AnimationCurveToVector2);
         var data = new Dictionary<string, object>
         {
             ["data"] = shootData
         };
-        GameLog log = new GameLog(SocketManager.Instance.LogNumber, "shoot", data);
-        SocketManager.Instance.SendAction(log);
-        
+        //GameLog log = new GameLog(SocketManager.Instance.LogNumber, "shoot", data);
+        //SocketManager.Instance.SendAction(log);
+
         var shootForce = new Vector3(shootDir.x * shootPowerX, shootDir.y * shootPowerY, shootDir.z * shootPowerZ);
         rb.AddForceAtPosition(shootForce, shootPos.position, ForceMode.Impulse);
         currenCoroutine = StartCoroutine(CurveTheBall());
