@@ -26,6 +26,7 @@ public class InputManager : MonoBehaviour
     [SerializeField] private float shootPowerY = 2f;
     [SerializeField] private float shootPowerZ = 1f;
     [SerializeField] private float curveFactor = 1f;
+    [SerializeField] private float changeTurnDelay = 5f;
 
     //easy touch
     private Gesture gesture;
@@ -53,7 +54,7 @@ public class InputManager : MonoBehaviour
     {
         canSwipe = false;
         print("Change Turn");
-        await Task.Delay(5000);
+        await Task.Delay((int)(changeTurnDelay * 1000));
         canSwipe = true;
         print("After Change Turn");
         //bool isMyTurn = MatchManager.Instance.ChangeTurn;
