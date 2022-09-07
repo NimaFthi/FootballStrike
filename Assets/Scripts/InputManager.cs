@@ -38,7 +38,7 @@ public class InputManager : MonoBehaviour
     //
     // public AnimationCurve default2Curve;
     //other
-    private bool canSwipe;
+    private bool canSwipe = true;
     private Coroutine currenCoroutine;
 
 
@@ -51,8 +51,10 @@ public class InputManager : MonoBehaviour
 
     public async void ChangeTurn()
     {
+        canSwipe = false;
         print("Change Turn");
         await Task.Delay(5000);
+        canSwipe = true;
         print("After Change Turn");
         //bool isMyTurn = MatchManager.Instance.ChangeTurn;
         //if (isMyTurn)
@@ -69,6 +71,7 @@ public class InputManager : MonoBehaviour
         defaultCurve.AddKey(0f, 0f);
         defaultCurve.AddKey(1f, 0f);
         animationCurve = defaultCurve;
+        rb.velocity = Vector3.zero;
         ballGfx.transform.localPosition = Vector3.zero;
         ballCollider.center = Vector3.zero;
         rb.transform.position = _firstRigidbodyPosition;
@@ -104,7 +107,7 @@ public class InputManager : MonoBehaviour
     {
         gesture = EasyTouch.current;
 
-        //if (!canSwipe) return;
+        if (!canSwipe) return;
 
         CalculateCurve();
 
