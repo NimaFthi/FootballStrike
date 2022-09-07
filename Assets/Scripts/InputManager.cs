@@ -27,6 +27,8 @@ public class InputManager : MonoBehaviour
     [SerializeField] private float shootPowerZ = 1f;
     [SerializeField] private float curveFactor = 1f;
     [SerializeField] private float changeTurnDelay = 5f;
+    [SerializeField] private float maxSwipeTime = 1.5f;
+    [SerializeField] private float animationSpeed = 10f;
 
     //easy touch
     private Gesture gesture;
@@ -41,6 +43,10 @@ public class InputManager : MonoBehaviour
     //other
     private bool canSwipe = true;
     private Coroutine currenCoroutine;
+    private List<Vector3> points = new List<Vector3>();
+    private bool isTracking = false;
+    private float zTrack;
+    private float currentSwipeTime;
 
 
     private void Start()
@@ -85,7 +91,7 @@ public class InputManager : MonoBehaviour
         if (shootData.userId != User.Instance.id)
         {
             animationCurve = Vector2ToAnimationCurve(shootData.animationCurve);
-            Shoot(shootData.forceDirection);
+            //Shoot(shootData.forceDirection);
         }
     }
 
@@ -104,49 +110,101 @@ public class InputManager : MonoBehaviour
         }
     }
 
+    private Vector3[] normalizePoints(List<Vector3> list, float lastZ)
+    {
+        float temp = (16 - list[list.Count-1].z)/list.Count;
+        for(int i=1; i<list.Count; i++)
+        {
+            list[i] = new Vector3(list[i].x, list[i].y, list[i].z + (temp * i));
+        }
+        return list.ToArray();
+    }
+
     private void Update()
     {
-        gesture = EasyTouch.current;
-
         if (!canSwipe) return;
 
-        CalculateCurve();
-
-        if (gesture.type == EasyTouch.EvtType.On_Swipe && gesture.touchCount == 1 && gesture.actionTime > 1.5f)
+        if (!isTracking)
         {
-            var cameraAndGoalDistance = Vector3.Magnitude(goalPos.position - Camera.main.transform.position);
-            var shootVector = gesture.GetTouchToWorldPoint(cameraAndGoalDistance - 0) - rb.transform.position;
-            Shoot(shootVector);
-            canSwipe = false;
-            return;
+            if(Input.touchCount > 0)
+            {
+                currentSwipeTime = 0;
+                Touch touch = Input.GetTouch(0);
+                isTracking = true;
+                zTrack = Mathf.Abs(transform.position.z - Camera.main.transform.position.z);
+                points.Add(transform.position);
+                points.Add(Camera.main.ScreenToWorldPoint(
+                    new Vector3(touch.position.x, touch.position.y, zTrack)
+                    ));
+            }
+        }
+        else
+        {
+            currentSwipeTime += Time.deltaTime;
+            if(Input.touchCount < 1 || currentSwipeTime > maxSwipeTime)
+            {
+                isTracking = false;
+                Shoot(normalizePoints(points, zTrack));
+            }
+            else
+            {
+                Touch touch = Input.GetTouch(0);
+                zTrack += ((50 / maxSwipeTime) * Time.deltaTime);
+                points.Add(Camera.main.ScreenToWorldPoint(
+                    new Vector3(touch.position.x, touch.position.y, zTrack)
+                    ));
+            }
         }
 
-        if (gesture.type == EasyTouch.EvtType.On_SwipeEnd && gesture.touchCount == 1)
-        {
-            var cameraAndGoalDistance = Vector3.Magnitude(goalPos.position - Camera.main.transform.position);
-            var shootDir = gesture.GetTouchToWorldPoint(cameraAndGoalDistance) - rb.transform.position;
-            Shoot(shootDir);
-            canSwipe = false;
-        }
+        //gesture = EasyTouch.current;
+
+        //CalculateCurve();
+
+        //if (gesture.type == EasyTouch.EvtType.On_Swipe && gesture.touchCount == 1 && gesture.actionTime > maxSwipeTime)
+        //{
+        //    var cameraAndGoalDistance = Vector3.Magnitude(goalPos.position - Camera.main.transform.position);
+        //    var shootVector = gesture.GetTouchToWorldPoint(cameraAndGoalDistance - 0) - rb.transform.position;
+        //    Shoot(shootVector);
+        //    canSwipe = false;
+        //    return;
+        //}
+
+        //if (gesture.type == EasyTouch.EvtType.On_SwipeEnd && gesture.touchCount == 1)
+        //{
+        //    var cameraAndGoalDistance = Vector3.Magnitude(goalPos.position - Camera.main.transform.position);
+        //    var shootDir = gesture.GetTouchToWorldPoint(cameraAndGoalDistance) - rb.transform.position;
+        //    Shoot(shootDir);
+        //    canSwipe = false;
+        //}
+    }
+
+    private void onCompletePath()
+    {
+        rb.velocity = Vector3.Normalize(points[points.Count-1] - points[points.Count-2]) * animationSpeed;
+        points.Clear();
+        ChangeTurn();
     }
     
 
-    private void Shoot(Vector3 shootDir)
+    private void Shoot(Vector3[] shootPath)
     {
-        print("here");
+        canSwipe = false;
+        iTween.MoveTo(gameObject, iTween.Hash(
+            "path", shootPath,
+            "oncomplete", "onCompletePath",
+            "speed", animationSpeed));
+        //ShootData shootData = new ShootData(User.Instance.id,shootDir, AnimationCurveToVector2);
+        //var data = new Dictionary<string, object>
+        //{
+        //    ["data"] = shootData
+        //};
+        ////GameLog log = new GameLog(SocketManager.Instance.LogNumber, "shoot", data);
+        ////SocketManager.Instance.SendAction(log);
 
-        ShootData shootData = new ShootData(User.Instance.id,shootDir, AnimationCurveToVector2);
-        var data = new Dictionary<string, object>
-        {
-            ["data"] = shootData
-        };
-        //GameLog log = new GameLog(SocketManager.Instance.LogNumber, "shoot", data);
-        //SocketManager.Instance.SendAction(log);
-
-        var shootForce = new Vector3(shootDir.x * shootPowerX, shootDir.y * shootPowerY, shootDir.z * shootPowerZ);
-        rb.AddForceAtPosition(shootForce, shootPos.position, ForceMode.Impulse);
-        currenCoroutine = StartCoroutine(CurveTheBall());
-        ChangeTurn();
+        //var shootForce = new Vector3(shootDir.x * shootPowerX, shootDir.y * shootPowerY, shootDir.z * shootPowerZ);
+        //rb.AddForceAtPosition(shootForce, shootPos.position, ForceMode.Impulse);
+        //currenCoroutine = StartCoroutine(CurveTheBall());
+        //ChangeTurn();
     }
 
     private List<Vector2> AnimationCurveToVector2

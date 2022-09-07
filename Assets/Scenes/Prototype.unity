@@ -1302,6 +1302,9 @@ MonoBehaviour:
   shootPowerY: 1.8
   shootPowerZ: 1
   curveFactor: 1
+  changeTurnDelay: 5
+  maxSwipeTime: 1.5
+  animationSpeed: 20
   swipeCurvePoints: []
   animationCurve:
     serializedVersion: 2
