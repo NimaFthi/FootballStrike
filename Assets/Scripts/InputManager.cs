@@ -50,6 +50,7 @@ public class InputManager : MonoBehaviour
     private float zTrack;
     private float currentSwipeTime;
     private Vector3 offset;
+    private bool hitObstacle = false;
 
 
     private void Start()
@@ -89,6 +90,7 @@ public class InputManager : MonoBehaviour
         rb.transform.position = _firstRigidbodyPosition;
         rb.transform.rotation = _firstRigidbodyRotation;
         hitTxt.gameObject.SetActive(false);
+        hitObstacle = false;
     }
 
     private void OnShoot(GameLog log)
@@ -200,7 +202,6 @@ public class InputManager : MonoBehaviour
         points.Clear();
         ChangeTurn();
     }
-    
 
     private void Shoot(Vector3[] shootPath)
     {
@@ -211,7 +212,7 @@ public class InputManager : MonoBehaviour
             "speed", animationSpeed,
             "orienttopath", true,
             "lookahead", 1f,
-            "easetype", iTween.EaseType.easeInOutSine));
+            "easetype", iTween.EaseType.linear));
         //ShootData shootData = new ShootData(User.Instance.id,shootDir, AnimationCurveToVector2);
         //var data = new Dictionary<string, object>
         //{
@@ -350,6 +351,16 @@ public class InputManager : MonoBehaviour
         {
             hitTxt.SetActive(true);
             Debug.Log("Hit target");
+        }
+        else if (other.gameObject.CompareTag("Obstacle"))
+        {
+            if (!hitObstacle)
+            {
+                iTween.Stop(gameObject);
+                points.Clear();
+                ChangeTurn();
+            }
+            hitObstacle = true;
         }
     }
 }
