@@ -21,6 +21,7 @@ public class InputManager : MonoBehaviour
     [SerializeField] private GameObject hitTxt;
 
     private Vector3 _firstRigidbodyPosition;
+    private Quaternion _firstRigidbodyRotation;
     //stats
     [SerializeField] private float shootPowerX = 1f;
     [SerializeField] private float shootPowerY = 2f;
@@ -29,6 +30,7 @@ public class InputManager : MonoBehaviour
     [SerializeField] private float changeTurnDelay = 5f;
     [SerializeField] private float maxSwipeTime = 1.5f;
     [SerializeField] private float animationSpeed = 10f;
+    [SerializeField, Range(0,1)] private float animationDamp = 0.5f;
 
     //easy touch
     private Gesture gesture;
@@ -47,11 +49,13 @@ public class InputManager : MonoBehaviour
     private bool isTracking = false;
     private float zTrack;
     private float currentSwipeTime;
+    private Vector3 offset;
 
 
     private void Start()
     {
         _firstRigidbodyPosition = rb.transform.position;
+        _firstRigidbodyRotation = rb.transform.rotation;
         //SocketManager.Instance.onGameAction = OnShoot;
         //MatchManager.Instance.onMatchReceived = (isPlayerOne) => { canSwipe = isPlayerOne; };
     }
@@ -79,9 +83,11 @@ public class InputManager : MonoBehaviour
         defaultCurve.AddKey(1f, 0f);
         animationCurve = defaultCurve;
         rb.velocity = Vector3.zero;
+        rb.angularVelocity = Vector3.zero;
         ballGfx.transform.localPosition = Vector3.zero;
         ballCollider.center = Vector3.zero;
         rb.transform.position = _firstRigidbodyPosition;
+        rb.transform.rotation = _firstRigidbodyRotation;
         hitTxt.gameObject.SetActive(false);
     }
 
@@ -120,6 +126,11 @@ public class InputManager : MonoBehaviour
         return list.ToArray();
     }
 
+    private float damp(float originF, float newF)
+    {
+        return (originF * animationDamp) + (newF * (1-animationDamp));
+    }
+
     private void Update()
     {
         if (!canSwipe) return;
@@ -132,10 +143,11 @@ public class InputManager : MonoBehaviour
                 Touch touch = Input.GetTouch(0);
                 isTracking = true;
                 zTrack = Mathf.Abs(transform.position.z - Camera.main.transform.position.z);
-                points.Add(transform.position);
-                points.Add(Camera.main.ScreenToWorldPoint(
+                Vector3 touchPos = Camera.main.ScreenToWorldPoint(
                     new Vector3(touch.position.x, touch.position.y, zTrack)
-                    ));
+                    );
+                offset = transform.position - touchPos;
+                points.Add(transform.position);
             }
         }
         else
@@ -150,9 +162,13 @@ public class InputManager : MonoBehaviour
             {
                 Touch touch = Input.GetTouch(0);
                 zTrack += ((50 / maxSwipeTime) * Time.deltaTime);
-                points.Add(Camera.main.ScreenToWorldPoint(
+                Vector3 touchPos = Camera.main.ScreenToWorldPoint(
                     new Vector3(touch.position.x, touch.position.y, zTrack)
-                    ));
+                    ) + offset;
+                points.Add(new Vector3(
+                    damp(points[points.Count - 1].x, touchPos.x),
+                    damp(points[points.Count - 1].y, touchPos.y),
+                    touchPos.z));
             }
         }
 
@@ -192,7 +208,10 @@ public class InputManager : MonoBehaviour
         iTween.MoveTo(gameObject, iTween.Hash(
             "path", shootPath,
             "oncomplete", "onCompletePath",
-            "speed", animationSpeed));
+            "speed", animationSpeed,
+            "orienttopath", true,
+            "lookahead", 1f,
+            "easetype", iTween.EaseType.easeInOutSine));
         //ShootData shootData = new ShootData(User.Instance.id,shootDir, AnimationCurveToVector2);
         //var data = new Dictionary<string, object>
         //{
