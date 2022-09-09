@@ -142,6 +142,15 @@ public class InputManager : MonoBehaviour
         return (originF * animationDamp) + (newF * (1-animationDamp));
     }
 
+    private Vector3 keepItOnFloor(Vector3 position)
+    {
+        if(position.y < _firstRigidbodyPosition.y)
+        {
+            position.y = _firstRigidbodyPosition.y;
+        }
+        return position;
+    }
+
     private void Update()
     {
         if (!canSwipe) return;
@@ -176,10 +185,10 @@ public class InputManager : MonoBehaviour
                 Vector3 touchPos = Camera.main.ScreenToWorldPoint(
                     new Vector3(touch.position.x, touch.position.y, zTrack)
                     ) + offset;
-                points.Add(new Vector3(
+                points.Add(keepItOnFloor(new Vector3(
                     damp(points[points.Count - 1].x, touchPos.x),
                     damp(points[points.Count - 1].y, touchPos.y),
-                    touchPos.z));
+                    touchPos.z)));
             }
         }
 
