@@ -19,9 +19,11 @@ public class InputManager : MonoBehaviour
     [SerializeField] private Transform shootPos;
     [SerializeField] private Transform goalPos;
     [SerializeField] private GameObject hitTxt;
+    [SerializeField] private GameObject goalKeeper;
 
     private Vector3 _firstRigidbodyPosition;
     private Quaternion _firstRigidbodyRotation;
+    private Vector3 _firstGKPosition;
     //stats
     [SerializeField] private float shootPowerX = 1f;
     [SerializeField] private float shootPowerY = 2f;
@@ -30,6 +32,8 @@ public class InputManager : MonoBehaviour
     [SerializeField] private float changeTurnDelay = 5f;
     [SerializeField] private float maxSwipeTime = 1.5f;
     [SerializeField] private float animationSpeed = 10f;
+    [SerializeField] private float gkSpeed = 10f;
+    [SerializeField] private float gkDelay = 1f;
     [SerializeField, Range(0,1)] private float animationDamp = 0.5f;
 
     //easy touch
@@ -57,6 +61,7 @@ public class InputManager : MonoBehaviour
     {
         _firstRigidbodyPosition = rb.transform.position;
         _firstRigidbodyRotation = rb.transform.rotation;
+        _firstGKPosition = goalKeeper.transform.position;
         //SocketManager.Instance.onGameAction = OnShoot;
         //MatchManager.Instance.onMatchReceived = (isPlayerOne) => { canSwipe = isPlayerOne; };
     }
@@ -64,6 +69,7 @@ public class InputManager : MonoBehaviour
     public async void ChangeTurn()
     {
         canSwipe = false;
+        iTween.Stop(goalKeeper);
         print("Change Turn");
         await Task.Delay((int)(changeTurnDelay * 1000));
         canSwipe = true;
@@ -91,6 +97,9 @@ public class InputManager : MonoBehaviour
         rb.transform.rotation = _firstRigidbodyRotation;
         hitTxt.gameObject.SetActive(false);
         hitObstacle = false;
+        iTween.MoveTo(goalKeeper, iTween.Hash(
+            "position", _firstGKPosition
+            ));
     }
 
     private void OnShoot(GameLog log)
@@ -203,6 +212,15 @@ public class InputManager : MonoBehaviour
         ChangeTurn();
     }
 
+    private Vector3 gkDestination(Vector3 ballDestination)
+    {
+        return new Vector3(
+            ballDestination.x,
+            goalKeeper.transform.position.y,
+            goalKeeper.transform.position.z
+            );
+    }
+
     private void Shoot(Vector3[] shootPath)
     {
         canSwipe = false;
@@ -213,6 +231,11 @@ public class InputManager : MonoBehaviour
             "orienttopath", true,
             "lookahead", 1f,
             "easetype", iTween.EaseType.linear));
+        iTween.MoveTo(goalKeeper, iTween.Hash(
+            "position", gkDestination(shootPath[shootPath.Length-1]),
+            "speed", gkSpeed,
+            "delay", gkDelay
+            ));
         //ShootData shootData = new ShootData(User.Instance.id,shootDir, AnimationCurveToVector2);
         //var data = new Dictionary<string, object>
         //{
