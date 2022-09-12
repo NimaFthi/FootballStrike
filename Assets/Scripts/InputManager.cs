@@ -20,6 +20,7 @@ public class InputManager : MonoBehaviour
     [SerializeField] private Transform goalPos;
     [SerializeField] private GameObject hitTxt;
     [SerializeField] private GameObject goalKeeper;
+    [SerializeField] private GameObject goalObject;
 
     private Vector3 _firstRigidbodyPosition;
     private Quaternion _firstRigidbodyRotation;
@@ -35,6 +36,7 @@ public class InputManager : MonoBehaviour
     [SerializeField] private float gkSpeed = 10f;
     [SerializeField] private float gkDelay = 1f;
     [SerializeField, Range(0,1)] private float animationDamp = 0.5f;
+    [SerializeField] private int trackEveryXFrames = 5;
 
     //easy touch
     private Gesture gesture;
@@ -50,15 +52,20 @@ public class InputManager : MonoBehaviour
     private bool canSwipe = true;
     private Coroutine currenCoroutine;
     private List<Vector3> points = new List<Vector3>();
+    private List<Vector2> touchPoints = new List<Vector2>();
     private bool isTracking = false;
-    private float zTrack;
+    //private float zTrack;
     private float currentSwipeTime;
-    private Vector3 offset;
+    //private Vector3 offset;
     private bool hitObstacle = false;
+    private int frameTracker = 0;
+    private Plane goalPlane;
 
 
     private void Start()
     {
+        goalPlane = new Plane(Vector3.back, goalObject.transform.position);
+        DrawPlane(goalObject.transform.position, Vector3.back);
         _firstRigidbodyPosition = rb.transform.position;
         _firstRigidbodyRotation = rb.transform.rotation;
         _firstGKPosition = goalKeeper.transform.position;
@@ -151,6 +158,50 @@ public class InputManager : MonoBehaviour
         return position;
     }
 
+    private Vector3[] screenPointsRacCast(List<Vector2> screenPoints)
+    {
+        Ray ray = Camera.main.ScreenPointToRay(screenPoints[screenPoints.Count-1]);
+        float distance = 0f;
+        goalPlane.Raycast(ray, out distance);
+        Vector3 destPos = ray.GetPoint(distance);
+        Vector3 perpendicular = Vector3.Cross(Vector3.left, destPos - transform.position);
+        Plane shootPlane = new Plane(perpendicular, transform.position);
+        DrawPlane(transform.position, perpendicular);
+        foreach(Vector2 point in screenPoints)
+        {
+            ray = Camera.main.ScreenPointToRay(point);
+            goalPlane.Raycast(ray, out distance);
+            points.Add(ray.GetPoint(distance));
+        }
+        return points.ToArray();
+    }
+
+    private void DrawPlane(Vector3 position, Vector3 normal)
+    {
+
+        Vector3 v3;
+
+        if (normal.normalized != Vector3.forward)
+            v3 = Vector3.Cross(normal, Vector3.forward).normalized * normal.magnitude;
+        else
+            v3 = Vector3.Cross(normal, Vector3.up).normalized * normal.magnitude; ;
+
+        var corner0 = position + v3;
+        var corner2 = position - v3;
+        var q = Quaternion.AngleAxis(90.0f, normal);
+        v3 = q * v3;
+        var corner1 = position + v3;
+        var corner3 = position - v3;
+
+        Debug.DrawLine(corner0, corner2, Color.green);
+        Debug.DrawLine(corner1, corner3, Color.green);
+        Debug.DrawLine(corner0, corner1, Color.green);
+        Debug.DrawLine(corner1, corner2, Color.green);
+        Debug.DrawLine(corner2, corner3, Color.green);
+        Debug.DrawLine(corner3, corner0, Color.green);
+        Debug.DrawRay(position, normal, Color.red);
+    }
+
     private void Update()
     {
         if (!canSwipe) return;
@@ -160,14 +211,14 @@ public class InputManager : MonoBehaviour
             if(Input.touchCount > 0)
             {
                 currentSwipeTime = 0;
-                Touch touch = Input.GetTouch(0);
                 isTracking = true;
-                zTrack = Mathf.Abs(transform.position.z - Camera.main.transform.position.z);
-                Vector3 touchPos = Camera.main.ScreenToWorldPoint(
-                    new Vector3(touch.position.x, touch.position.y, zTrack)
-                    );
-                offset = transform.position - touchPos;
-                points.Add(transform.position);
+                touchPoints.Add(Input.GetTouch(0).position);
+                //zTrack = Mathf.Abs(transform.position.z - Camera.main.transform.position.z);
+                //Vector3 touchPos = Camera.main.ScreenToWorldPoint(
+                //    new Vector3(touch.position.x, touch.position.y, zTrack)
+                //    );
+                //offset = transform.position - touchPos;
+                //points.Add(transform.position);
             }
         }
         else
@@ -176,19 +227,24 @@ public class InputManager : MonoBehaviour
             if(Input.touchCount < 1 || currentSwipeTime > maxSwipeTime)
             {
                 isTracking = false;
-                Shoot(normalizePoints(points, zTrack));
+                //Shoot(normalizePoints(points, zTrack));
+                Shoot(screenPointsRacCast(touchPoints));
             }
             else
             {
-                Touch touch = Input.GetTouch(0);
-                zTrack += ((50 / maxSwipeTime) * Time.deltaTime);
-                Vector3 touchPos = Camera.main.ScreenToWorldPoint(
-                    new Vector3(touch.position.x, touch.position.y, zTrack)
-                    ) + offset;
-                points.Add(keepItOnFloor(new Vector3(
-                    damp(points[points.Count - 1].x, touchPos.x),
-                    damp(points[points.Count - 1].y, touchPos.y),
-                    touchPos.z)));
+                frameTracker = (frameTracker + 1) % trackEveryXFrames;
+                if (frameTracker == 0)
+                {
+                    touchPoints.Add(Input.GetTouch(0).position);
+                    //zTrack += ((50 / maxSwipeTime) * Time.deltaTime * trackEveryXFrames);
+                    //Vector3 touchPos = Camera.main.ScreenToWorldPoint(
+                    //    new Vector3(touch.position.x, touch.position.y, zTrack)
+                    //    ) + offset;
+                    //points.Add(keepItOnFloor(new Vector3(
+                    //    damp(points[points.Count - 1].x, touchPos.x),
+                    //    damp(points[points.Count - 1].y, touchPos.y),
+                    //    touchPos.z)));
+                }
             }
         }
 
