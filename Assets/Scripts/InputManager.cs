@@ -65,7 +65,6 @@ public class InputManager : MonoBehaviour
     private void Start()
     {
         goalPlane = new Plane(Vector3.back, goalObject.transform.position);
-        DrawPlane(goalObject.transform.position, Vector3.back);
         _firstRigidbodyPosition = rb.transform.position;
         _firstRigidbodyRotation = rb.transform.rotation;
         _firstGKPosition = goalKeeper.transform.position;
@@ -166,40 +165,13 @@ public class InputManager : MonoBehaviour
         Vector3 destPos = ray.GetPoint(distance);
         Vector3 perpendicular = Vector3.Cross(Vector3.left, destPos - transform.position);
         Plane shootPlane = new Plane(perpendicular, transform.position);
-        DrawPlane(transform.position, perpendicular);
         foreach(Vector2 point in screenPoints)
         {
             ray = Camera.main.ScreenPointToRay(point);
-            goalPlane.Raycast(ray, out distance);
+            shootPlane.Raycast(ray, out distance);
             points.Add(ray.GetPoint(distance));
         }
         return points.ToArray();
-    }
-
-    private void DrawPlane(Vector3 position, Vector3 normal)
-    {
-
-        Vector3 v3;
-
-        if (normal.normalized != Vector3.forward)
-            v3 = Vector3.Cross(normal, Vector3.forward).normalized * normal.magnitude;
-        else
-            v3 = Vector3.Cross(normal, Vector3.up).normalized * normal.magnitude; ;
-
-        var corner0 = position + v3;
-        var corner2 = position - v3;
-        var q = Quaternion.AngleAxis(90.0f, normal);
-        v3 = q * v3;
-        var corner1 = position + v3;
-        var corner3 = position - v3;
-
-        Debug.DrawLine(corner0, corner2, Color.green);
-        Debug.DrawLine(corner1, corner3, Color.green);
-        Debug.DrawLine(corner0, corner1, Color.green);
-        Debug.DrawLine(corner1, corner2, Color.green);
-        Debug.DrawLine(corner2, corner3, Color.green);
-        Debug.DrawLine(corner3, corner0, Color.green);
-        Debug.DrawRay(position, normal, Color.red);
     }
 
     private void Update()
@@ -229,6 +201,7 @@ public class InputManager : MonoBehaviour
                 isTracking = false;
                 //Shoot(normalizePoints(points, zTrack));
                 Shoot(screenPointsRacCast(touchPoints));
+                touchPoints.Clear();
             }
             else
             {
@@ -429,7 +402,7 @@ public class InputManager : MonoBehaviour
 
     private void OnCollisionEnter(Collision other)
     {
-        Debug.Log("hit");
+        //Debug.Log("hit");
         if (currenCoroutine != null)
         {
             StopCoroutine(currenCoroutine);
@@ -438,7 +411,7 @@ public class InputManager : MonoBehaviour
         if (other.gameObject.CompareTag("Target"))
         {
             hitTxt.SetActive(true);
-            Debug.Log("Hit target");
+            //Debug.Log("Hit target");
         }
         else if (other.gameObject.CompareTag("Obstacle"))
         {
